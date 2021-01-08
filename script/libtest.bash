@@ -143,6 +143,8 @@ kubeless_recreate() {
     done
     kubectl create namespace kubeless
     kubectl create -f ${manifest_upd}
+    echo_info "Describe deployment/kubeless-controller-manager"
+    kubectl describe deployment/kubeless-controller-manager -n kubeless
 }
 kubeless_function_delete() {
     local func=${1:?}; shift
@@ -294,6 +296,8 @@ redeploy_with_rbac_roles() {
     kubeless_recreate $KUBELESS_MANIFEST_RBAC $KUBELESS_MANIFEST_RBAC
     _wait_for_kubeless_controller_ready
     _wait_for_kubeless_controller_logline "controller synced and ready"
+    echo_info "Describe deployment/kubeless-controller-manager"
+    kubectl describe deployment/kubeless-controller-manager -n kubeless
 }
 
 deploy_kafka() {
@@ -488,7 +492,7 @@ verify_http_trigger(){
     local -i cnt=${TEST_MAX_WAIT_SEC:?}
     echo_info "Waiting for ingress to be ready..."
     until kubectl get ingress | grep $func | grep "$domain" | awk '{print $3}' | grep "$ip"; do
-        ((cnt=cnt-1)) || return 1
+        ((cnt=cnt-1)) || (echo "ERROR: failed to verify http trigger"; kubectl describe deployment -n kubeless; kubectl describe deployment; kubectl describe ing; kubectl logs -l kubeless=controller -c http-trigger-controller -n kubeless; return 1)
         sleep 1
     done
     sleep 3
