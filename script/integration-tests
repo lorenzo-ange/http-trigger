@@ -50,7 +50,11 @@ kubectl get nodes --context=${INTEGRATION_TESTS_CTX:?} || {
 which helm || {
     curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
     helm repo add nginx-stable https://helm.nginx.com/stable
+    helm repo add bitnami https://charts.bitnami.com/bitnami
     helm repo update
+}
+helm status --kube-context ${INTEGRATION_TESTS_CTX:?} metallb || {
+    helm metallb my-release bitnami/metallb
 }
 helm status --kube-context ${INTEGRATION_TESTS_CTX:?} nginx-ingress || {
     helm install --kube-context ${INTEGRATION_TESTS_CTX:?} nginx-ingress nginx-stable/nginx-ingress --set controller.setAsDefaultIngress=true
