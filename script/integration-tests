@@ -46,11 +46,15 @@ kubectl get nodes --context=${INTEGRATION_TESTS_CTX:?} || {
     ${cluster_up}
 }
 
-# Install Helm and Nginx ingress chart
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-helm repo add nginx-stable https://helm.nginx.com/stable
-helm repo update
-helm install --kube-context ${INTEGRATION_TESTS_CTX:?} nginx-ingress nginx-stable/nginx-ingress
+# Install Helm and Nginx ingress chart, if not already installed
+which helm || {
+    curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    helm repo add nginx-stable https://helm.nginx.com/stable
+    helm repo update
+}
+helm status --kube-context ${INTEGRATION_TESTS_CTX:?} nginx-ingress || {
+    helm install --kube-context ${INTEGRATION_TESTS_CTX:?} nginx-ingress nginx-stable/nginx-ingress --set controller.setAsDefaultIngress=true
+}
 
 # Both RBAC'd dind and minikube seem to be missing rules to make kube-dns work properly
 # add some (granted) broad ones:
